@@ -1,9 +1,16 @@
-import { app, Exception, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { app, Exception, HttpRequest, HttpResponseInit, InvocationContext, output } from "@azure/functions";
 
 import { writeFileSync, readFileSync, appendFileSync } from "fs";
 
 import constantsJson from "./../data/constants.json";
 import { formatMsgWithDate } from "../utils/formatters";
+
+const sendToCosmosDb = output.cosmosDB({
+  databaseName: 'gratitude-list-nosql-db',
+  containerName: 'gratitude-list-db-container',
+  createIfNotExists: false,
+  connection: 'CosmosDBConnectionString',
+});
 
 export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
 
@@ -25,8 +32,27 @@ export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: In
             const formattedUserResponseMsgRecord: string = formatMsgWithDate(constantsJson.userName, `My 3 gratitudes are: ${answersArray.join(", ")}`);
             const formattedMachineResponseMsgRecord: string = formatMsgWithDate(constantsJson.machineName, constantsJson.gratitudesSubmissionSuccessMsg);
             
-            appendFileSync(constantsJson.txtFileResponseStack, formattedUserResponseMsgRecord);
-            appendFileSync(constantsJson.txtFileResponseStack, formattedMachineResponseMsgRecord);
+            // appendFileSync(constantsJson.txtFileResponseStack, formattedUserResponseMsgRecord);
+            // appendFileSync(constantsJson.txtFileResponseStack, formattedMachineResponseMsgRecord);
+
+            // Record message by user
+            context.extraOutputs.set(sendToCosmosDb, {
+                // create a random ID
+                id: new Date().toISOString() + Math.random().toString().substring(2, 10),
+                message: formattedUserResponseMsgRecord,
+                user: constantsJson.userName,
+                date: new Date()
+            });
+
+            // Record reply by machine
+            context.extraOutputs.set(sendToCosmosDb, {
+                // create a random ID
+                id: new Date().toISOString() + Math.random().toString().substring(2, 10),
+                message: formattedMachineResponseMsgRecord,
+                user: constantsJson.machineName,
+                date: new Date()
+            });
+
         } catch (e) {
             return {status: 500, body: "Something occurred: " + e.message}
         }
@@ -39,6 +65,7 @@ export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: In
 app.http('HTTPSendGratitudeListMsg', {
     methods: ['GET', 'POST'],
     authLevel: 'anonymous',
+    extraOutputs: [sendToCosmosDb],
     route: "message",
     handler: HTTPSendGratitudeListMsg
 });
