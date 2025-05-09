@@ -3,6 +3,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { writeFileSync, readFileSync, appendFileSync } from "fs";
 
 import constantsJson from "./../data/constants.json";
+import { formatMsgWithDate } from "../utils/formatters";
 
 export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     // context.log(`Http function processed request for url "${request.url}"`);
@@ -25,11 +26,14 @@ export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: In
         const answersArray:Array<string> = Array.from(requestFormData["answers"]) ?? [];
         if (answersArray.length !== 3) return {status: 400, body: "Please enter the 3 gratitudes"}
 
-        const userResponse: string = `My 3 gratitudes are: ${answersArray.join(", ")}`;
+        const formattedUserResponseMsgRecord: string = formatMsgWithDate(constantsJson.userName, `My 3 gratitudes are: ${answersArray.join(", ")}`);
+        const formattedMachineResponseMsgRecord: string = formatMsgWithDate(constantsJson.machineName, constantsJson.gratitudesSubmissionSuccessMsg);
 
-        appendFileSync(constantsJson.txtFileResponseStack, userResponse);
+        appendFileSync(constantsJson.txtFileResponseStack, formattedUserResponseMsgRecord);
+        appendFileSync(constantsJson.txtFileResponseStack, formattedMachineResponseMsgRecord);
 
-        return {body: constantsJson.gratitudesSubmissionResponse}
+
+        return {body: "Submission successful"}
     }
 };
 

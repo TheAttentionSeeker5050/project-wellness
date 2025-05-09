@@ -1,4 +1,7 @@
 {
-    "gratitudesSubmissionResponse": "That is good to hear, remember to be thankful for what you have everyday, it leads to a happier and more fulfilling life and helps you value what you have. Have a nice day and remember to have your feet on the ground but your sight pointing upwards!",
-    "txtFileResponseStack": "src/models/responseStack.txt"
+    "gratitudesSubmissionSuccessMsg": "That is good to hear, remember to be thankful for what you have everyday, it leads to a happier and more fulfilling life and helps you value what you have. Have a nice day and remember to have your feet on the ground but your sight pointing upwards!",
+    "txtFileResponseStack": "src/models/responseStack.txt",
+    "morningGratitudeRequestMsgText": "Good morning champ! Hope you slept well. It’s your wellness pal reminding you to name 3 things you are thankful for today.",
+    "userName": "Nicolas",
+    "machineName": "Morning Gratitude Fairy"
 }
