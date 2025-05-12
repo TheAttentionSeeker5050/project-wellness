@@ -1,21 +1,42 @@
-import { app, Exception, HttpRequest, HttpResponseInit, InvocationContext, output } from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
-import { writeFileSync, readFileSync, appendFileSync } from "fs";
 
 import constantsJson from "./../data/constants.json";
 import { formatMsgWithDate } from "../utils/formatters";
 
-const sendToCosmosDb = output.cosmosDB({
-  databaseName: 'gratitude-list-nosql-db',
-  containerName: 'gratitude-list-db-container',
-  createIfNotExists: false,
-  connection: 'CosmosDBConnectionString',
-});
+
+import { CosmosClient, FeedResponse } from "@azure/cosmos";
+import { Message } from "../models/message";
+
+const cosmosClient = new CosmosClient(process.env["CosmosDBConnectionString"]);
+const database = cosmosClient.database("gratitude-list-nosql-db");
+const container = database.container("gratitude-list-db-container");
 
 export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
 
-    if (request.method === "GET")
-        return {body: "Hello message GET"}
+    if (request.method === "GET") {
+        try {
+    
+            const querySpec = {
+                query: "SELECT * FROM c"
+            };
+            const { resources: items }: FeedResponse<Message> = await container.items.query<Message>(querySpec).fetchAll();
+
+            return {
+                status: 200,
+                body: JSON.stringify(items),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            };
+
+        } catch (e) {
+            return {
+                status: 500,
+                body: `Error retrieving items: ${e.message}`
+            };
+        }
+    }
     else {
 
         // get the request body
@@ -31,32 +52,30 @@ export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: In
             
             const formattedUserResponseMsgRecord: string = formatMsgWithDate(constantsJson.userName, `My 3 gratitudes are: ${answersArray.join(", ")}`);
             const formattedMachineResponseMsgRecord: string = formatMsgWithDate(constantsJson.machineName, constantsJson.gratitudesSubmissionSuccessMsg);
-            
-            // appendFileSync(constantsJson.txtFileResponseStack, formattedUserResponseMsgRecord);
-            // appendFileSync(constantsJson.txtFileResponseStack, formattedMachineResponseMsgRecord);
 
-            // Record message by user
-            context.extraOutputs.set(sendToCosmosDb, {
-                // create a random ID
-                id: new Date().toISOString() + Math.random().toString().substring(2, 10),
+            // Current date and time:
+            const now = new Date();
+            
+            const userMessage: Message = {
+                id: now.toISOString() + Math.random().toString().substring(2, 10),
                 message: formattedUserResponseMsgRecord,
                 user: constantsJson.userName,
-                date: new Date()
-            });
+                date: now
+            };
 
-            // Record reply by machine
-            context.extraOutputs.set(sendToCosmosDb, {
-                // create a random ID
-                id: new Date().toISOString() + Math.random().toString().substring(2, 10),
+            const machineMessage:Message = {
+                id: now.toISOString() + Math.random().toString().substring(2, 10),
                 message: formattedMachineResponseMsgRecord,
                 user: constantsJson.machineName,
-                date: new Date()
-            });
+                date: now
+            };
+
+            await container.items.create<Message>(userMessage);
+            await container.items.create<Message>(machineMessage);
 
         } catch (e) {
             return {status: 500, body: "Something occurred: " + e.message}
         }
-
 
         return {body: "Submission successful"}
     }
@@ -65,7 +84,7 @@ export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: In
 app.http('HTTPSendGratitudeListMsg', {
     methods: ['GET', 'POST'],
     authLevel: 'anonymous',
-    extraOutputs: [sendToCosmosDb],
+    extraOutputs: [],
     route: "message",
     handler: HTTPSendGratitudeListMsg
 });
