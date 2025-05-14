@@ -5,14 +5,15 @@ import constantsJson from "./../data/constants.json";
 import { formatMsgWithDate } from "../utils/formatters";
 
 
-import { CosmosClient, FeedResponse } from "@azure/cosmos";
+import { FeedResponse } from "@azure/cosmos";
 import { Message } from "../models/message";
 
-const cosmosClient = new CosmosClient(process.env["CosmosDBConnectionString"]);
-const database = cosmosClient.database("gratitude-list-nosql-db");
-const container = database.container("gratitude-list-db-container");
+import { getCosmosContainer } from "./../cosmosClient"
+
 
 export async function HTTPSendGratitudeListMsg(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    // Call our singleton cosmos client and get the container and database
+    const container = getCosmosContainer();
 
     if (request.method === "GET") {
         try {

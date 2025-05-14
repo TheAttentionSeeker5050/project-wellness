@@ -1,19 +1,19 @@
 import { app, InvocationContext, Timer } from "@azure/functions";
-//  Module to write to file, this will be replaced later for a sms msg broker module
+
 import constantsJson from "./../data/constants.json";
 import { formatMsgWithDate } from "../utils/formatters";
 
-import { CosmosClient } from "@azure/cosmos";
+// import { CosmosClient } from "@azure/cosmos";
 import { Message } from "../models/message";
-
-const cosmosClient = new CosmosClient(process.env["CosmosDBConnectionString"]);
-const database = cosmosClient.database("gratitude-list-nosql-db");
-const container = database.container("gratitude-list-db-container");
-
+import { getCosmosContainer } from "./../cosmosClient"
 
 export async function PrintSendGratitudeRequestMsg(myTimer: Timer, context: InvocationContext): Promise<void> {
 
+    // Call our singleton cosmos client and get the container and database
+    const container = getCosmosContainer()
+    
     try {
+
         // Current date and time:
         const now = new Date();
         // Format msg send by the machine
@@ -30,13 +30,12 @@ export async function PrintSendGratitudeRequestMsg(myTimer: Timer, context: Invo
         
 
     } catch (e) {
-        context.error("Could not print gratitude list request")
+        context.error("Could not print gratitude list request:", e?.message)
     }
 }
 
 app.timer('PrintSendGratitudeRequestMsg', {
-    // schedule: '30 * * * * *', // Every 60 seconds
-    extraOutputs: [],
+    // schedule: '30 * * * * *', // Every 30 seconds
     schedule: '0 0 6 * * *', // Everyday at 6am
     handler: PrintSendGratitudeRequestMsg
 });
