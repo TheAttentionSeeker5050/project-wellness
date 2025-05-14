@@ -7,8 +7,8 @@ It consist of an azure function project that sends you periodic text messages ea
 **Remember:** Gratitude is key to happiness.
 
 ## Installation
-Refer to the azure documentation
-Also you may need to make use of local settings
+Refer to the azure documentation.
+Also you may need to make use of local.settings.json:
 
 ```json
 {
